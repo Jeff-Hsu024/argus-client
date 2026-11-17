@@ -1,0 +1,5 @@
+/target/
+/.argus-client/
+*.log
+*.key
+.env

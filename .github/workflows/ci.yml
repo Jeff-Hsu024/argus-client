@@ -1,0 +1,31 @@
+name: Rust CI and binaries
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test-build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: argus-client-linux-x64
+            binary: target/release/argus-client
+          - os: windows-latest
+            artifact: argus-client-windows-x64
+            binary: target/release/argus-client.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Validate shell acceptance fixture
+        if: runner.os == 'Linux'
+        run: bash -n tests/orca-auth-route.sh
+      - name: Unit tests
+        run: cargo test --locked
+      - name: Compile release binary
+        run: cargo build --locked --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.binary }}
