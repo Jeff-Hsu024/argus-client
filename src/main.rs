@@ -306,8 +306,13 @@ async fn sync(dir: &Path, pair: &str, verbose: bool) -> Result<bool> {
     let old = load(dir, pair)?;
     check_url(&old.center)?;
     let url = format!("{}/api/sync/{}", old.center.trim_end_matches('/'), old.pair);
-    let response = reqwest::Client::builder()
-        .timeout(Duration::from_secs(12))
+    // Follow the same transport proxy as Chisel. Cloud workers may have
+    // no direct DNS/HTTPS egress; otherwise service revision sync stalls.
+    let mut client = reqwest::Client::builder().timeout(Duration::from_secs(12));
+    if let Some(proxy) = &old.transport_proxy {
+        client = client.proxy(reqwest::Proxy::all(proxy)?);
+    }
+    let response = client
         .build()?
         .get(&url)
         .bearer_auth(&old.password)
